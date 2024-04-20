@@ -4,6 +4,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class LibraryTest {
@@ -17,7 +19,19 @@ class LibraryTest {
 
     @AfterEach
     void tearDown() {
+        try {
+            Field f = Book.class.getDeclaredField("lastId");
+            f.setAccessible(true);
+            Book b = new Book ("","");
+            f.set(b,0);
+            f.setAccessible(false);
+        }
+        catch (Exception e)
+        {
+
+        }
         library = null;
+
     }
 
     @Test
