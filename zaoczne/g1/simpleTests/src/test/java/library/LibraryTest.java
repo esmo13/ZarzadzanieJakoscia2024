@@ -89,7 +89,7 @@ class LibraryTest {
     }
 
     /*Zadanie, modyfikacje kodu + odpowiednie testy:
-        - Wyporzyczanie książki nie kasuje jej z biblioteki
+        - Wypożyczanie książki nie kasuje jej z biblioteki
         - Dodanie użytkownika i jego karty wypożyczeń
             - wypożycza użytkownik
             - oddaje użytkownik

@@ -103,4 +103,12 @@ class LibraryTest {
         assertNull(b,"This book should not exist");
         assertEquals(3, listBooks.size());
     }
+
+     /*Zadanie, modyfikacje kodu + odpowiednie testy:
+        - Wypożyczanie książki nie kasuje jej z biblioteki
+        - Dodanie użytkownika i jego karty wypożyczeń
+            - wypożycza użytkownik
+            - oddaje użytkownik
+        - Serializacja danych (plik lub sqllite)
+    */
 }
