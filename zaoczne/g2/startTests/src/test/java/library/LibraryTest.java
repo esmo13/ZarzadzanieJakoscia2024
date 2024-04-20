@@ -101,6 +101,6 @@ class LibraryTest {
         Book b = lib.borrow("J.R.R. Tolkien", "Dwie Wieże");
         //*** THEN ***
         assertNull(b,"This book should not exist");
-        assertEquals(2, listBooks.size());
+        assertEquals(3, listBooks.size());
     }
 }

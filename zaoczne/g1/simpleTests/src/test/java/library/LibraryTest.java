@@ -1,6 +1,7 @@
 package library;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -11,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class LibraryTest {
 
     private Library library;
+
+
 
     @BeforeEach
     void setUp() {
@@ -84,4 +87,12 @@ class LibraryTest {
         assertEquals(3,library.books.size());
 
     }
+
+    /*Zadanie, modyfikacje kodu + odpowiednie testy:
+        - Wyporzyczanie książki nie kasuje jej z biblioteki
+        - Dodanie użytkownika i jego karty wypożyczeń
+            - wypożycza użytkownik
+            - oddaje użytkownik
+        - Serializacja danych (plik lub sqllite)
+    */
 }
