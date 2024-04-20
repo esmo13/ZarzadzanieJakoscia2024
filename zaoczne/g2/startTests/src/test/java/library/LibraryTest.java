@@ -3,8 +3,10 @@ package library;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,7 +27,7 @@ class LibraryTest {
 
     @Test
     void init() {
-        //*** WHEN ***
+        //*** GIVEN ***
         // class is empty
         //*** WHEN ***
         Book[] books = new Book[]{
@@ -50,6 +52,55 @@ class LibraryTest {
     }
 
     @Test
-    void borrow() {
+    void succesfullBorrow() {
+        //*** GIVEN ***
+        Book[] books = new Book[]{
+                new Book("J.R.R. Tolkien", "Silmalirion"),
+                new Book("J. Joice", "Ulisses"),
+                new Book("M. Twain", "Tom Sawyer"),
+        };
+        List<Book> listBooks = null;
+        try {
+            Field f = lib.getClass().getDeclaredField("books");
+            f.setAccessible(true);
+            listBooks = (List<Book>) f.get(lib);
+            listBooks.addAll(Arrays.asList(books));
+            f.setAccessible(false);
+        }
+        catch(Exception e){
+
+        }
+        //*** WHEN ***
+        Book b = lib.borrow("J. Joice", "Ulisses");
+        //*** THEN ***
+        assertNotNull(b);
+        assertEquals("J. Joice",b.getAuthor());
+        assertEquals(2, listBooks.size());
+    }
+
+    @Test
+    void unsuccesfullBorrow(){
+        //*** GIVEN ***
+        Book[] books = new Book[]{
+                new Book("J.R.R. Tolkien", "Silmalirion"),
+                new Book("J. Joice", "Ulisses"),
+                new Book("M. Twain", "Tom Sawyer"),
+        };
+        List<Book> listBooks = null;
+        try {
+            Field f = lib.getClass().getDeclaredField("books");
+            f.setAccessible(true);
+            listBooks = (List<Book>) f.get(lib);
+            listBooks.addAll(Arrays.asList(books));
+            f.setAccessible(false);
+        }
+        catch(Exception e){
+
+        }
+        //*** WHEN ***
+        Book b = lib.borrow("J.R.R. Tolkien", "Dwie Wieże");
+        //*** THEN ***
+        assertNull(b,"This book should not exist");
+        assertEquals(2, listBooks.size());
     }
 }

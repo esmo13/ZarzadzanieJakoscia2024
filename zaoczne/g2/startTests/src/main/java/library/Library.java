@@ -24,7 +24,7 @@ public class Library {
     private int searchForBook(String author, String title) {
         for (int k=0; k<books.size(); k++){
             Book b = books.get(k);
-            if (b.getAuthor().equals(author) && b.getTitle().equals(title)){
+            if (b.getAuthor().equals(author)){// && b.getTitle().equals(title)){
                 return k;
             }
         }
