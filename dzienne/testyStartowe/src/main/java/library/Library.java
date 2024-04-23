@@ -13,7 +13,7 @@ public class Library {
         }
     }
 
-    public  Book borow(String author, String title){
+    public  Book borrow(String author, String title){
         int i = searchBook(author, title);
         if (i<0) return null;
         Book b = books.get(i);
