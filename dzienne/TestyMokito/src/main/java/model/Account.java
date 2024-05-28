@@ -9,7 +9,7 @@ public class Account {
     private User owner;
 
     public boolean income(double ammount){
-        ammount+=ammount;
+        this.ammount+=ammount;
         return true;
     }
 

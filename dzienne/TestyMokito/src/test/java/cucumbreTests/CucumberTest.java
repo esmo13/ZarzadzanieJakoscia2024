@@ -1,6 +1,10 @@
 package cucumbreTests;
-import io.cucumber.junit.platform.engine.Constants;
+
 import org.junit.platform.suite.api.*;
+
+import static io.cucumber.core.options.Constants.GLUE_PROPERTY_NAME;
+import static io.cucumber.core.options.Constants.PLUGIN_PROPERTY_NAME;
+
 
 //@CucumberOptions(
 //            //plugin = {"pretty"},
@@ -8,14 +12,15 @@ import org.junit.platform.suite.api.*;
 //            glue={"cucumber"} //packages names
 //    )
 @Suite
-@IncludeEngines("cucumber")
+//@IncludeEngines("cucumber")
 @SelectPackages("cucumbreTests")
-@ConfigurationParameter(
-        key = Constants.FEATURES_PROPERTY_NAME,value = "src/test/resources/features")
-//@ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME,value = "src/test/resources/features")
-//@ConfigurationParameter(key = Constants.FILTER_TAGS_PROPERTY_NAME,value = "@googleSearch")
-//@ConfigurationParameter(key = Constants.EXECUTION_DRY_RUN_PROPERTY_NAME,value = "false")
-//@ConfigurationParameter(key = Constants.PLUGIN_PROPERTY_NAME,value = "pretty, html:target/cucumber-report/cucumber.html")
-
+@SelectClasspathResource("features")
+@ConfigurationParameters({
+        @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "cucumbreTests"),
+        @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value = "pretty")
+})
 public class CucumberTest {
+    public CucumberTest(){
+        System.out.println("test");
+    }
     }
