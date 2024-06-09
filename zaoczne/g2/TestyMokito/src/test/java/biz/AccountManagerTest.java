@@ -51,6 +51,7 @@ class AccountManagerTest {
     void paymentIn() throws SQLException {
         //GIVEN
         int accId = 13;
+        accId=12;
         User user = new User();
         Account a = mock(Account.class) ;
 //        = new Account();
@@ -79,7 +80,7 @@ class AccountManagerTest {
         //Sprawdzamy czy zalogowano odpowiednie operacje
         verify(mockHistory, atLeastOnce()).logOperation(any(Operation.class),eq(true));
     }
-    //PayentIn przypadki testowe:
+    //PaymentIn przypadki testowe:
     // user == null, ammount <0, konto nie istnieje, nie udało się zupdatować bazy danych
 
     @Test
