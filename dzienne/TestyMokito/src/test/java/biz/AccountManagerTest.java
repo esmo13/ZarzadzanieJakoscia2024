@@ -73,8 +73,10 @@ class AccountManagerTest {
         //Sprawzamy operacje na dao, find account by ID
         verify(mockDao, atMostOnce() ).findAccountById(eq(accId));
         verify(mockDao, atLeastOnce() ).findAccountById(anyInt());
+        verify(mockDao, times(1) ).findAccountById(anyInt());
         verify(mockDao, atMostOnce() ).updateAccountState(eq(a));
         verify(mockDao, atLeastOnce() ).updateAccountState(any(Account.class));
+        //Sprawdzamy czy zalogowano odpowiednie operacje
         verify(mockHistory, atLeastOnce()).logOperation(any(Operation.class),eq(true));
     }
     //PayentIn przypadki testowe:
