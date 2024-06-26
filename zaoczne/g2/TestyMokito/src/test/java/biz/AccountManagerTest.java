@@ -4,6 +4,7 @@ import db.dao.DAO;
 import model.Account;
 import model.Operation;
 import model.User;
+import model.exceptions.OperationIsNotAllowedException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,30 +55,24 @@ class AccountManagerTest {
         accId=12;
         User user = new User();
         Account a = mock(Account.class) ;
-//        = new Account();
-//        a.setOwner(user);
-//        a.setAmmount(100);
-//        a.setId(accId);
+
         String desc = "Wpłata";
         double amount = 123;
         when(mockDao.findAccountById(eq(accId))).thenReturn(a);
         when(mockDao.updateAccountState(eq(a))).thenReturn(true);
+        when(a.income(amount)).thenReturn(true);
         //WHEN
         boolean result = target.paymentIn(user,amount,desc,accId);
         //THEN
-        //System.out.println(target.dao.findAccountById(13));
-        //System.out.println(target.dao.findAccountById(1));
         assertTrue(result);
-        //Możemy sprawdzić stan konta po operacji
-        //assertEquals(100+amount,a.getAmmount());
         verify(a, times(1)).income(amount);
-        //Sprawzamy operacje na dao, find account by ID
+
         verify(mockDao, atMostOnce() ).findAccountById(eq(accId));
         verify(mockDao, atLeastOnce() ).findAccountById(anyInt());
         verify(mockDao, times(1) ).findAccountById(anyInt());
         verify(mockDao, atMostOnce() ).updateAccountState(eq(a));
         verify(mockDao, atLeastOnce() ).updateAccountState(any(Account.class));
-        //Sprawdzamy czy zalogowano odpowiednie operacje
+
         verify(mockHistory, atLeastOnce()).logOperation(any(Operation.class),eq(true));
     }
     //PaymentIn przypadki testowe:
@@ -96,4 +91,113 @@ class AccountManagerTest {
         //THEN
         assertFalse(result);
     }
+    @Test
+    void amountLessThanZeroPaymentIn() throws SQLException {
+        //GIVEN
+        int accId = 13;
+        User user = mock(User.class);
+        Account a = mock(Account.class) ;
+        double amount = -123;
+        when(mockDao.findAccountById(anyInt())).thenReturn(a);
+        when(a.income(amount)).thenReturn(false); //spodziewamy sie FALSE jeśli wartość dla metody INCOME jest ujemna
+        String desc = "Wpłata";
+
+        //WHEN
+        boolean result = target.paymentIn(user,amount,desc,accId);
+        //THEN
+        assertFalse(result);
+        // tu znaleziono pierwszy błąd, nie chcemy wykonywać updateAccountState jeśli metoda income() sie nie powiodła
+        verify(mockDao, times(0)).updateAccountState(a);
+        verify(mockHistory, atLeastOnce()).logOperation(any(Operation.class),eq(false));
+    }
+
+    @Test
+    void dbFailPaymentIn() throws SQLException {
+        //GIVEN
+        int accId = 13;
+        User user = mock(User.class);
+        Account a = mock(Account.class) ;
+        final double[] accDiff = {0};
+        double amount = 123;
+        when(mockDao.findAccountById(anyInt())).thenReturn(a);
+        when(a.income(amount)).thenAnswer(invocation -> {
+            accDiff[0]+= amount;
+            return true;
+        });
+        when(a.outcome(amount)).thenAnswer(invocation ->{
+            accDiff[0]-=amount;
+            return true;
+        });
+        when(mockDao.updateAccountState(a)).thenReturn(false); //założenie testowe - operacja na bazie danych sie nie powiodła.
+        String desc = "Wpłata";
+
+        //WHEN
+        boolean result = target.paymentIn(user,amount,desc,accId);
+        //THEN
+        assertFalse(result);
+        //operacja income się powiodła
+        verify(a, atLeastOnce()).income(amount);
+        //tu znaleziono błąd drugi, operacja powinna zostać cofnięta
+        verify(a, atLeastOnce()).outcome(amount);
+        verify(mockHistory, atLeastOnce()).logOperation(any(Operation.class),eq(false));
+    }
+
+    @Test
+    void dbThrowPaymentIn() throws SQLException {
+        //GIVEN
+        int accId = 13;
+        User user = mock(User.class);
+        Account a = mock(Account.class) ;
+        final double[] accDiff = {0};
+        double amount = 123;
+        when(mockDao.findAccountById(anyInt())).thenReturn(a);
+        when(a.income(amount)).thenAnswer(invocation -> {
+            accDiff[0]+= amount;
+            return true;
+        });
+        when(a.outcome(amount)).thenAnswer(invocation ->{
+            accDiff[0]-=amount;
+            return true;
+        });
+        //tu znaleziono błąd numer 3, metoda paymentInt nie handluje wyjątku SQLException rzuconego przez baze.
+        when(mockDao.updateAccountState(a)).thenThrow(SQLException.class); //założenie testowe - operacja na bazie danych sie nie powiodła i rzuciła wyjątkiem.
+        String desc = "Wpłata";
+
+        //WHEN
+        boolean result = target.paymentIn(user,amount,desc,accId);
+        //THEN
+        assertFalse(result);
+        //operacja income się powiodła
+        verify(a, atLeastOnce()).income(amount);
+        //tu znaleziono błąd drugi, operacja powinna zostać cofnięta
+        verify(a, atLeastOnce()).outcome(amount);
+        verify(mockHistory, atLeastOnce()).logOperation(any(Operation.class),eq(false));
+        assertEquals(accDiff[0], 0.0);
+    }
+
+    @Test
+    void paymentOut() throws SQLException, OperationIsNotAllowedException {
+        //GIVEN
+        int accId = 13;
+        User user = new User();
+        Account a = mock(Account.class) ;
+
+        String desc = "Wpłata";
+        double amount = 123;
+        when(mockDao.findAccountById(eq(accId))).thenReturn(a);
+        when(mockDao.updateAccountState(eq(a))).thenReturn(true);
+        when(a.income(amount)).thenReturn(true);
+        //WHEN
+        boolean result = target.paymentOut(user,amount,desc,accId);
+        //THEN
+        assertTrue(result);
+        verify(a, times(1)).income(amount);
+
+        verify(mockDao, times(1) ).findAccountById(anyInt());
+        verify(mockDao, atMostOnce() ).updateAccountState(eq(a));
+        verify(mockDao, atLeastOnce() ).updateAccountState(any(Account.class));
+
+        verify(mockHistory, atLeastOnce()).logOperation(any(Operation.class),eq(true));
+    }
 }
+

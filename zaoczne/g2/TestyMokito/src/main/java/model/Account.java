@@ -9,6 +9,9 @@ public class Account {
     private User owner;
 
     public boolean income(double ammount){
+        //skoro mamy osobne funkcje na income i outcome
+        //możemy z czystym sumieniem odrzucić operacje income dla ujemnych wartości
+        if(ammount <0) return false;
         this.ammount+=ammount;
         return true;
     }

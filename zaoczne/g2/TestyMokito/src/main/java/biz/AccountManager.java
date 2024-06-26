@@ -29,7 +29,22 @@ public class AccountManager {
         boolean success = false;
         if (account != null) {
             success = account.income(ammount);
+            // pierwszy znaleziony błąd, nie musimy nadpisywać zmiennej success, jeśl account.income się nie powiedzie.
+            //szczególnie że zapytania do bazy danych są kosztowne.
+            if (success){
+                //trzeci błąd, brak obsługi wyjątku rzucanego przez dao
+                try{
             success = dao.updateAccountState(account);
+            }catch (SQLException e){
+                    success=false;
+                }
+            // drugi znaleziony błąd, jeśli operacja na bazie danych się nie powiedzie, powinniśmy cofnąć operacje
+            if (!success){
+                account.outcome(ammount);
+            }
+            }
+
+
         }
         history.logOperation(operation, success);
         return success;
