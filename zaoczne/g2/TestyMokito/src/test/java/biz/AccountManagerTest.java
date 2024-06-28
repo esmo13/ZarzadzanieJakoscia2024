@@ -5,6 +5,7 @@ import model.Account;
 import model.Operation;
 import model.User;
 import model.exceptions.OperationIsNotAllowedException;
+import model.operations.Withdraw;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -140,6 +141,7 @@ class AccountManagerTest {
         //tu znaleziono błąd drugi, operacja powinna zostać cofnięta
         verify(a, atLeastOnce()).outcome(amount);
         verify(mockHistory, atLeastOnce()).logOperation(any(Operation.class),eq(false));
+        assertEquals(accDiff[0], 0.0);
     }
 
     @Test
@@ -179,25 +181,136 @@ class AccountManagerTest {
     void paymentOut() throws SQLException, OperationIsNotAllowedException {
         //GIVEN
         int accId = 13;
-        User user = new User();
+        User user = mock(User.class);
         Account a = mock(Account.class) ;
-
-        String desc = "Wpłata";
+        String desc = "Wyplata";
         double amount = 123;
         when(mockDao.findAccountById(eq(accId))).thenReturn(a);
+        when(mockAuthManager.canInvokeOperation(any(Withdraw.class),any(User.class))).thenReturn(true);
         when(mockDao.updateAccountState(eq(a))).thenReturn(true);
-        when(a.income(amount)).thenReturn(true);
+        when(a.outcome(amount)).thenReturn(true);
         //WHEN
         boolean result = target.paymentOut(user,amount,desc,accId);
         //THEN
         assertTrue(result);
-        verify(a, times(1)).income(amount);
+        verify(a, times(1)).outcome(amount);
 
         verify(mockDao, times(1) ).findAccountById(anyInt());
         verify(mockDao, atMostOnce() ).updateAccountState(eq(a));
         verify(mockDao, atLeastOnce() ).updateAccountState(any(Account.class));
 
-        verify(mockHistory, atLeastOnce()).logOperation(any(Operation.class),eq(true));
+        verify(mockHistory, atLeastOnce()).logOperation(any(Withdraw.class),eq(true));
+    }
+
+    @Test
+    void paymentOutAuthFail() throws SQLException, OperationIsNotAllowedException {
+        //GIVEN
+        int accId = 13;
+        User user = mock(User.class);
+        Account a = mock(Account.class) ;
+        String desc = "Wyplata";
+        double amount = 123;
+        when(mockDao.findAccountById(eq(accId))).thenReturn(a);
+        when(mockAuthManager.canInvokeOperation(any(Withdraw.class),any(User.class))).thenReturn(false);
+        //WHEN
+        OperationIsNotAllowedException thrown = assertThrows(OperationIsNotAllowedException.class, () -> {
+            target.paymentOut(user, amount, desc, accId);
+        });
+        //THEN
+        assertEquals("Unauthorized operation", thrown.getMessage());
+        verify(mockAuthManager,times(1)).canInvokeOperation(any(Withdraw.class),any(User.class));
+        verify(mockDao, times(1) ).findAccountById(anyInt());
+        verify(mockHistory, atLeastOnce()).logUnauthorizedOperation(any(Withdraw.class),eq(false));
+    }
+
+    @Test
+    void paymentOutAccountNull() throws SQLException, OperationIsNotAllowedException {
+        //GIVEN
+        int accId = 13;
+        User user = mock(User.class);
+        Account a = mock(Account.class) ;
+        String desc = "Wyplata";
+        double amount = 123;
+        when(mockDao.findAccountById(eq(accId))).thenReturn(null);
+        //WHEN
+        boolean result= target.paymentOut(user, amount, desc, accId);
+
+        //THEN
+        //tu znaleziono bład 4, jeśli account==null operacja powinna się nie powieść.
+        assertFalse(result);
+        verify(mockDao, times(1) ).findAccountById(anyInt());
+    }
+
+    @Test
+    void paymentOutOutcomeFail() throws SQLException, OperationIsNotAllowedException {
+        //GIVEN
+        int accId = 13;
+        User user = mock(User.class);
+        Account a = mock(Account.class) ;
+        String desc = "Wyplata";
+        double amount = 123;
+        when(mockDao.findAccountById(eq(accId))).thenReturn(a);
+        when(mockAuthManager.canInvokeOperation(any(Withdraw.class),any(User.class))).thenReturn(true);
+        when(a.outcome(amount)).thenReturn(false);
+        //WHEN
+        boolean result = target.paymentOut(user,amount,desc,accId);
+        //THEN
+        assertFalse(result);
+        verify(a, times(1)).outcome(amount);
+
+        verify(mockDao, times(1) ).findAccountById(anyInt());
+        //tu znaleziono błąd 5, nie chcemy wykonywać zapytania do bazy danych jeśli metoda outcome się nie powiedzie
+        verify(mockDao, times(0) ).updateAccountState(eq(a));
+
+        verify(mockHistory, atLeastOnce()).logOperation(any(Withdraw.class),eq(false));
+    }
+
+    @Test
+    void paymentOutDbFail() throws SQLException, OperationIsNotAllowedException {
+        //GIVEN
+        int accId = 13;
+        User user = mock(User.class);
+        Account a = mock(Account.class) ;
+        String desc = "Wyplata";
+        double amount = 123;
+        when(mockDao.findAccountById(eq(accId))).thenReturn(a);
+        when(mockAuthManager.canInvokeOperation(any(Withdraw.class),any(User.class))).thenReturn(true);
+        when(mockDao.updateAccountState(eq(a))).thenReturn(false);
+        when(a.outcome(amount)).thenReturn(true);
+        //WHEN
+        boolean result = target.paymentOut(user,amount,desc,accId);
+        //THEN
+        assertFalse(result);
+        verify(a, times(1)).outcome(amount);
+
+        verify(mockDao, times(1) ).findAccountById(anyInt());
+        verify(mockDao, times(1) ).updateAccountState(eq(a));
+
+        verify(mockHistory, atLeastOnce()).logOperation(any(Withdraw.class),eq(false));
+    }
+
+    @Test
+    void paymentOutDbFailThrow() throws SQLException, OperationIsNotAllowedException {
+        //GIVEN
+        int accId = 13;
+        User user = mock(User.class);
+        Account a = mock(Account.class) ;
+        String desc = "Wyplata";
+        double amount = 123;
+        when(mockDao.findAccountById(eq(accId))).thenReturn(a);
+        when(mockAuthManager.canInvokeOperation(any(Withdraw.class),any(User.class))).thenReturn(true);
+        when(mockDao.updateAccountState(eq(a))).thenThrow(SQLException.class);
+        when(a.outcome(amount)).thenReturn(true);
+        //WHEN
+        boolean result = target.paymentOut(user,amount,desc,accId);
+        //THEN
+        assertFalse(result);
+        verify(a, times(1)).outcome(amount);
+
+        verify(mockDao, times(1) ).findAccountById(anyInt());
+        verify(mockDao, times(1) ).updateAccountState(eq(a));
+
+        verify(mockHistory, atLeastOnce()).logOperation(any(Withdraw.class),eq(false));
     }
 }
 

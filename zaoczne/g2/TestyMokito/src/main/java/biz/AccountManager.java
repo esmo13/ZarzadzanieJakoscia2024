@@ -33,12 +33,16 @@ public class AccountManager {
             //szczególnie że zapytania do bazy danych są kosztowne.
             if (success){
                 //trzeci błąd, brak obsługi wyjątku rzucanego przez dao
+                // NIEKONIECZNIE JEST TO BŁĄD, KWESTIA UMOWNA
+                //chociaż wtedy w pamięci mamy stan konta inny niż w bazie danych
+                //więc może nie kwestia umowna
                 try{
             success = dao.updateAccountState(account);
             }catch (SQLException e){
                     success=false;
                 }
             // drugi znaleziony błąd, jeśli operacja na bazie danych się nie powiedzie, powinniśmy cofnąć operacje
+                // NIEKONIECZNIE JEST TO BŁĄD, KWESTIA UMOWNA, jeśli uznamy błąd 3 za błąd, to wtedy na pewno ten błąd też jest błędem
             if (!success){
                 account.outcome(ammount);
             }
@@ -52,16 +56,33 @@ public class AccountManager {
 
     public boolean paymentOut(User user, double ammount, String description, int accountId) throws OperationIsNotAllowedException, SQLException {
         Account account = dao.findAccountById(accountId);
-        Operation operation = new Withdraw(user, ammount,description, account);
-        boolean success = auth.canInvokeOperation(operation,user );
-        if (!success){
-            history.logUnauthorizedOperation(operation, success);
-            throw new OperationIsNotAllowedException("Unauthorized operation");
+        //błąd 4, nie sprawdzamy czy account istnieje
+        boolean success = false;
+        Operation operation = new Withdraw(user, ammount, description, account);
+        if (account != null) {
+            success = auth.canInvokeOperation(operation, user);
+            if (!success) {
+                history.logUnauthorizedOperation(operation, success);
+                throw new OperationIsNotAllowedException("Unauthorized operation");
+            }
+            success = account.outcome(ammount);
+            // blad 5, taki sam jak w paymentIn
+            if (success) {
+                //błąd 6, taki sam jak w paymentIn
+                try{
+                success = dao.updateAccountState(account);}
+                catch (SQLException e){
+                    success=false;
+                }
+                //błąd 7, taki sam jak w paymentIn
+                if (!success){
+                    account.income(ammount);
+                }
+            }
         }
-        success = account.outcome(ammount);
-        success = dao.updateAccountState(account);
-        history.logOperation(operation, success);
-        return success;
+            history.logOperation(operation, success);
+            return success;
+
     }
 
     public boolean internalPayment(User user, double ammount, String description, int sourceAccountId, int destAccountId) throws OperationIsNotAllowedException, SQLException {
