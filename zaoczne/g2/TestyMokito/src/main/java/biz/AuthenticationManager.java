@@ -64,6 +64,7 @@ public class AuthenticationManager {
         CharBuffer cBuffer = CharBuffer.wrap(pass);
         byte[] bpass = null;
         try {
+            //na pewno nie błąd 12, ale uniemożliwienie testowania - hardcoded algorytm
             MessageDigest digest = MessageDigest.getInstance(digestAlgo);
             bpass = Charset.forName("UTF-8").encode(cBuffer).array();
             byte[] encodedhash = digest.digest(bpass);
@@ -75,8 +76,7 @@ public class AuthenticationManager {
         finally{
             cBuffer.clear();
             if (bpass!=null) Arrays.fill(bpass, (byte) 0x0);
-            if (pass!=null) Arrays.fill(pass, 'a');
-        }
+            if (pass!=null) Arrays.fill(pass, 'a');}
         return result;
     }
 
