@@ -6,6 +6,7 @@ import model.Account;
 import model.Operation;
 import model.User;
 import model.exceptions.OperationIsNotAllowedException;
+import model.exceptions.UserUnnkownOrBadPasswordException;
 import model.operations.PaymentIn;
 import model.operations.Withdraw;
 import org.junit.jupiter.api.AfterEach;
@@ -539,7 +540,7 @@ class AccountManagerTest {
     @Test
     void buildBankThrowSql() throws SQLException{
         //GIVEN
-        //tu znaleziono blad 10
+        //tu znaleziono błąd(?) 10
         AccountManager.makeDao = ()->{
             throw new SQLException("test");
         };
@@ -570,6 +571,115 @@ class AccountManagerTest {
         AccountManager built =  AccountManager.buildBank();
         //THEN
         assertNull(built);
+    }
+
+    @Test
+    void logIn() throws UserUnnkownOrBadPasswordException, SQLException{
+        User user = mock(User.class);
+        //GIVEN
+        String login = "admin";
+        char[] password = {'a','d','m','i','n'};
+        when(mockAuthManager.logIn(login,password)).thenReturn(user);
+        //WHEN
+        boolean result = target.logIn(login,password);
+        //THEN
+        assertNotNull(target.loggedUser);
+        assertEquals(target.loggedUser,user);
+        assertTrue(result);
+    }
+
+    @Test
+    void logInThrowSql() throws UserUnnkownOrBadPasswordException, SQLException{
+        //GIVEN
+        String login = "admin";
+        char[] password = {'a','d','m','i','n'};
+        when(mockAuthManager.logIn(login,password)).thenThrow(SQLException.class);
+        //WHEN
+        assertThrows(SQLException.class, () -> {
+            target.logIn(login,password);
+        });
+        //THEN
+        assertNull(target.loggedUser);
+    }
+
+    @Test
+    void logInFailNoThrow() throws UserUnnkownOrBadPasswordException, SQLException{
+        //GIVEN
+        String login = "admin";
+        char[] password = {'a','d','m','i','n'};
+        when(mockAuthManager.logIn(login,password)).thenReturn(null);
+        //WHEN
+        boolean result = target.logIn(login,password);
+
+        //THEN
+        assertNull(target.loggedUser);
+        assertFalse(result);
+    }
+
+    @Test
+    void logOut() throws SQLException{
+        User user = mock(User.class);
+        //GIVEN
+        target.loggedUser=user;
+        when(mockAuthManager.logOut(user)).thenReturn(true);
+        //WHEN
+        boolean result = target.logOut(user);
+
+        //THEN
+        assertNull(target.loggedUser);
+        assertTrue(result);
+    }
+
+    @Test
+    void logOutFailNoThorw() throws SQLException{
+        User user = mock(User.class);
+        //GIVEN
+        target.loggedUser=user;
+        when(mockAuthManager.logOut(user)).thenReturn(false);
+        //WHEN
+        boolean result = target.logOut(user);
+
+        //THEN
+        assertNotNull(target.loggedUser);
+        assertEquals(target.loggedUser,user);
+        assertFalse(result);
+    }
+
+    @Test
+    void logOutFailSqlThrow() throws SQLException{
+        User user = mock(User.class);
+        //GIVEN
+        target.loggedUser=user;
+        when(mockAuthManager.logOut(user)).thenThrow(SQLException.class);
+        //WHEN
+        assertThrows(SQLException.class, () -> {
+            target.logOut(user);
+        });
+
+        //THEN
+        assertNotNull(target.loggedUser);
+        assertEquals(target.loggedUser,user);
+    }
+    @Test
+    void getLoggedUserNotNull() {
+        //GIVEN
+        User user = mock(User.class);
+        target.loggedUser=user;
+        //WHEN
+        User result = target.getLoggedUser();
+        //THEN
+        assertEquals(user,result);
+        assertEquals(result,target.loggedUser);
+    }
+    @Test
+    void getLoggedUserNull() {
+        //GIVEN
+        target.loggedUser=null;
+        //WHEN
+        User result = target.getLoggedUser();
+        //THEN
+        assertNull(result);
+
     }
 }
 
