@@ -24,6 +24,7 @@ import java.util.Arrays;
 public class AuthenticationManager {
     private DAO dao;
     private BankHistory history;
+    public static String digestAlgo = "SHA-256";
 
     public AuthenticationManager(DAO dao, BankHistory bankHistory){
         this.dao=dao;
@@ -34,7 +35,8 @@ public class AuthenticationManager {
         User user = dao.findUserByName(userName);
         if (user==null) {
             history.logLoginFailure(null,"Zła nazwa użytkownika "+userName);
-            throw new UserUnnkownOrBadPasswordException("Bad Password");
+            //błąd 11, niepoprawna wiadomość w wyjątku
+            throw new UserUnnkownOrBadPasswordException("Zła nazwa użytkownika "+userName);
         }
         Password paswd = dao.findPasswordForUser(user);
         if (checkPassword(paswd,password)) {
@@ -62,7 +64,7 @@ public class AuthenticationManager {
         CharBuffer cBuffer = CharBuffer.wrap(pass);
         byte[] bpass = null;
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            MessageDigest digest = MessageDigest.getInstance(digestAlgo);
             bpass = Charset.forName("UTF-8").encode(cBuffer).array();
             byte[] encodedhash = digest.digest(bpass);
             Base64 base64 = new Base64();
