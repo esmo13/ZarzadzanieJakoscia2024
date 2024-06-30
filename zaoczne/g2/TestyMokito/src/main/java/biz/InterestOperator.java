@@ -17,9 +17,11 @@ public class InterestOperator {
     protected BankHistory bankHistory;
     private double interestFactor =.2;
 
-    public InterestOperator (DAO dao, AccountManager am){
+    //raczej błąd lub conajmniej niekonsekwencja, nie było dodanego przypisania bankHistory w konstruktorze
+    public InterestOperator (DAO dao, AccountManager am, BankHistory bh){
         this.dao=dao;
         accountManager = am;
+        this.bankHistory = bh;
     }
 
     public void countInterestForAccount(Account account) throws SQLException {

@@ -124,7 +124,7 @@ public class AccountManager {
             BankHistory history = new BankHistory(dao);
             AuthenticationManager am = new AuthenticationManager(dao, history);
             AccountManager aManager = new AccountManager();
-            InterestOperator io = new InterestOperator(dao, aManager);
+            InterestOperator io = new InterestOperator(dao, aManager,history);
             aManager.dao = dao;
             aManager.auth = am;
             aManager.history = history;
