@@ -10,14 +10,17 @@ import model.exceptions.OperationIsNotAllowedException;
 import model.exceptions.UserUnnkownOrBadPasswordException;
 import model.operations.PaymentIn;
 import model.operations.Withdraw;
+import org.junit.jupiter.api.function.ThrowingSupplier;
 
 import java.sql.SQLException;
+import java.util.function.Supplier;
 
 /**
  * Created by Krzysztof Podlaski on 04.03.2018.
  */
 public class AccountManager {
     DAO dao;
+    static ThrowingSupplier<DAO> makeDao = DAOImpl::new;
     BankHistory history;
     AuthenticationManager auth;
     InterestOperator interestOperator;
@@ -86,20 +89,28 @@ public class AccountManager {
     }
 
     public boolean internalPayment(User user, double ammount, String description, int sourceAccountId, int destAccountId) throws OperationIsNotAllowedException, SQLException {
+        //bardziej zły practice niż jawny błąd, ale uważam całą aktualną implementację funkcji za bezsensowną duplikację kodu (i tym samym błędów!)
+        //cała ta funkcja mogłaby wywoływać paymentIn i paymentOut
+        // ale rozumiem że na zaliczeniu sprawdzamy umiejętność pisania testów jednostkowych
         Account sourceAccount = dao.findAccountById(sourceAccountId);
         Account destAccount = dao.findAccountById(destAccountId);
-        Operation withdraw = new Withdraw(user, ammount,description, sourceAccount);
-        Operation payment = new PaymentIn(user, ammount,description, destAccount);
-        boolean success = auth.canInvokeOperation(withdraw,user );
-        if (!success){
-            history.logUnauthorizedOperation(withdraw, success);
-            throw new OperationIsNotAllowedException("Unauthorized operation");
-        }
-        success = sourceAccount.outcome(ammount);
-        success = success && destAccount.income(ammount);
-        if (success) {
-            success = dao.updateAccountState(sourceAccount);
-            if (success) dao.updateAccountState(destAccount);
+        boolean success = false;
+        Operation withdraw = new Withdraw(user, ammount, description, sourceAccount);
+        Operation payment = new PaymentIn(user, ammount, description, destAccount);
+        //błąd 8, brak null checka
+        if (sourceAccount != null && destAccount != null) {
+            success = auth.canInvokeOperation(withdraw, user);
+            if (!success) {
+                history.logUnauthorizedOperation(withdraw, success);
+                throw new OperationIsNotAllowedException("Unauthorized operation");
+            }
+            success = sourceAccount.outcome(ammount);
+            success = success && destAccount.income(ammount);
+            if (success) {
+                success = dao.updateAccountState(sourceAccount);
+                //błąd 9, nie aktualizujemy success jeśli następna linijka się nie powiedzie
+                if (success) success=dao.updateAccountState(destAccount);
+            }
         }
         history.logOperation(withdraw, success);
         history.logOperation(payment, success);
@@ -108,7 +119,8 @@ public class AccountManager {
 
     public static AccountManager buildBank() {
         try {
-            DAO dao = SQLiteDB.createDAO();
+            //błąd(?) 10, nietestowalna architektura
+            DAO dao = makeDao.get();
             BankHistory history = new BankHistory(dao);
             AuthenticationManager am = new AuthenticationManager(dao, history);
             AccountManager aManager = new AccountManager();
@@ -121,6 +133,9 @@ public class AccountManager {
         } catch (SQLException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        catch (java.lang.Throwable e){
             e.printStackTrace();
         }
         return null;
